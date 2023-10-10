@@ -1,0 +1,30 @@
+extends layouts/login-layout.pug 
+block content 
+    .loginContainer 
+        h1 Register 
+        form#registerForm( method="post",onSubmit="event.preventDefault(); validateForm()") 
+
+            p.errorMessage #{errorMessage}
+
+            input(type="text", name="fname" ,placeholder="First name",value=fname required="")
+            input(type="text", name="lname" ,placeholder="Last name",value=lname required="")
+            input(type="text", name="username" ,placeholder="Username",value=username required="")
+            input(type="email", name="email" ,placeholder="Email",value=email required="")
+            input#pass(type="password", name="password" ,placeholder="Password",required="")
+            input#confirmPass(type="password", name="confirmpassword" ,placeholder="Confirm Password",required="")
+            input(type="submit", value="Register")
+
+        a(href='/api/v1/auth/login') Already have an account ? Login here.
+
+    script.
+     let passField = document.getElementById('pass');     
+     let confirmPassField = document.getElementById('confirmPass');
+     let form = document.getElementById('registerForm'); 
+
+        function validateForm() {
+            if (passField.value !== confirmPassField.value) {
+            alert("Passwords don't match");
+            } else {
+            form.submit();
+            }
+        }

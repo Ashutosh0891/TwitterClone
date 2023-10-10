@@ -1,0 +1,9 @@
+extends layouts/login-layout.pug 
+block content 
+    .loginContainer 
+        h1 Login 
+        form( method="post") 
+            input(type="text", name="name" ,placeholder="username or email",required="")
+            input(type="password", name="password" ,placeholder="password",required="")
+            input(type="submit", value="Login")
+        a(href='/api/v1/auth/register') Need an account ? Register Here.
