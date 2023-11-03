@@ -9,11 +9,11 @@ app.set("views", "views"); //set views in views folder
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-router.get('/register', (req, res, next) => {
+router.get('/', (req, res, next) => {
     res.render("register")
 })
 
-router.post('/register', async (req, res, next) => {
+router.post('/', async (req, res, next) => {
     let fname = req.body.fname.trim()
     let lname = req.body.lname.trim()
     let username = req.body.username.trim()
@@ -47,9 +47,9 @@ router.post('/register', async (req, res, next) => {
                 password: hashPassword
             })
             await user.save();
-            req.session.user = user;
-            console.log(req.session)
-            return res.redirect('/')
+            // req.session.user = user;
+            // console.log(req.session)
+            return res.redirect('/login')
 
 
         } else {
