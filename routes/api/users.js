@@ -6,6 +6,27 @@ const fs = require('fs');
 const multer = require('multer');
 const upload = multer({ dest: '/uploads/' });
 
+
+router.get('/', async (req, res, next) => {
+    try {
+        let searchObj = req.query;
+        console.log(searchObj)
+        if (req.query.search !== undefined) {
+            searchObj = {
+                $or: [
+                    { firstname: { $regex: req.query.search, $options: "i" } },
+                    { lastname: { $regex: req.query.search, $options: "i" } },
+                    { username: { $regex: req.query.search, $options: "i" } }
+                ]
+            }
+        }
+        let results = await User.find(searchObj);
+        res.status(200).send(results);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(400);
+    }
+})
 router.put('/:userId/follow', async (req, res, next) => {
     try {
         let userId = req.params.userId;

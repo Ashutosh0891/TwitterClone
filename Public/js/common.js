@@ -1,4 +1,6 @@
 let cropper;
+let timer;
+let selectedUsers = [];
 
 $(document).ready(function () {
     $("#postTextArea,#replyTextArea").keyup(function (e) {
@@ -45,6 +47,51 @@ $(document).ready(function () {
             displayPosts(results.postData, $("#originalPostContainer"))
         })
     });
+    $("#confirmPinModal").on("show.bs.modal", (event) => {
+        let button = $(event.relatedTarget);
+        let postId = getPostIdFromElement(button);
+        $("#pinPostButton").data("id", postId)
+
+    });
+    $("#unpinModal").on("show.bs.modal", (event) => {
+        let button = $(event.relatedTarget);
+        let postId = getPostIdFromElement(button);
+        $("#unpinPostButton").data("id", postId)
+
+    });
+
+    $("#pinPostButton").click((event) => {
+        let postId = $(event.target).data("id");
+        $.ajax({
+            url: `/api/posts/${postId}`,
+            data: { pinned: true },
+            type: "PUT",
+            success: (data, status, xhr) => {
+
+                if (xhr.status != 204) {
+                    alert("couldn't pin the post")
+                }
+                location.reload()
+            }
+        })
+    });
+
+    $("#unpinPostButton").click((event) => {
+        let postId = $(event.target).data("id");
+        $.ajax({
+            url: `/api/posts/${postId}`,
+            data: { pinned: false },
+            type: "PUT",
+            success: (data, status, xhr) => {
+
+                if (xhr.status != 204) {
+                    alert("couldn't pin the post")
+                }
+                location.reload()
+            }
+        })
+    });
+
     $("#deletePostButton").click((event) => {
         let postId = $(event.target).data("id");
         $.ajax({
@@ -137,6 +184,44 @@ $(document).ready(function () {
             })
         })
 
+    });
+    $("#userSearchTextbox").keydown((event) => {
+        clearTimeout(timer);
+        let textbox = $(event.target);
+        let value = textbox.val();
+
+        if (value == "" && event.which == 8) {
+            selectedUsers.pop();
+            updateSelectedUsersHtml();
+            $(".resultsContainer").html("");
+
+            if (selectedUsers.length == 0) {
+                $("#createChatButton").prop("disabled", true);
+            }
+            return;
+        }
+
+        timer = setTimeout(() => {
+            value = textbox.val().trim();
+
+            if (value == "") {
+                $(".resultsContainer").html("");
+            }
+            else {
+                searchUsers(value);
+            }
+        }, 1000)
+
+    });
+    $("#createChatButton").click(() => {
+        let data = JSON.stringify(selectedUsers);//can send data on server in form of string only
+
+        $.post("/api/chats", { users: data }, chat => {
+            if (!chat || !chat._id) {
+                return alert("Invalid response from the server");
+            }
+            window.location.href = `/messages/${chat._id}`;
+        })
     })
 
 
@@ -176,7 +261,6 @@ $(document).ready(function () {
     });
 
 })
-
 
 
 $(document).on("click", ".likeButton", (event) => {
@@ -332,9 +416,19 @@ function createPostHtml(postData, largeFont = false) {
                    </div>`
     }
 
-    let buttons = ""
+    let buttons = "";
+    let pinnedPostText = "";
+
     if (postData.postedBy._id == userLoggedIn._id) {
-        buttons = `<button data-id='${postId}' data-bs-toggle="modal" data-bs-target="#deletePostModal"><i class="fa-solid fa-trash"></i></button>`
+        let dataTarget = "#confirmPinModal";
+        let pinnedClass = "";
+        if (postData.pinned === true) {
+            pinnedClass = "active"
+            dataTarget = "#unpinModal"
+            pinnedPostText = "<i class='fa-solid fa-thumbtack'></i> <span>Pinned post</span>"
+        }
+        buttons = `<button class='pinButton ${pinnedClass}' data-id='${postId}' data-bs-toggle="modal" data-bs-target=${dataTarget}><i class="fa-solid fa-thumbtack"></i></button>
+                    <button data-id='${postId}' data-bs-toggle="modal" data-bs-target="#deletePostModal"><i class="fa-solid fa-trash"></i></button>`
     }
 
     return `<div class='post ${largeFontClass}' data-id='${postId}'>
@@ -346,6 +440,7 @@ function createPostHtml(postData, largeFont = false) {
                 <img src='${postData.postedBy.profilePicture}'/>
             </div>
             <div class='postContentContainer'>
+                <div class='pinnedPostText'>${pinnedPostText}</div>
                 <div class='header'>
                     <a href='/profile/${postData.postedBy.username}' class='displayName '>${displayName}</a>
                     <span class='username'>@${postData.postedBy.username}</span>
@@ -437,4 +532,89 @@ function displayPostsWithReplies(results, container) {
     if (results.length == 0) {
         container.append("<span>no posts available</span>")
     }
+}
+
+function displayUsers(results, container) {
+    container.html("");
+
+    results.forEach(result => {
+        let html = createUserHtml(result, true);
+        container.append(html);
+    });
+    if (results.length == 0) {
+        container.append("<span class='noResults'>no results available</span>")
+    }
+}
+
+function createUserHtml(userData, showFollowButton) {
+    let name = userData.firstname + "" + userData.lastname;
+    let isFollowing = userLoggedIn.following && userLoggedIn.following.includes(userData._id);
+    let text = isFollowing ? "Unfollow" : "follow"
+    let buttonClass = isFollowing ? "followButton following" : "followButton"
+
+    let followButton = "";
+    if (showFollowButton && userLoggedIn._id != userData._id) {
+        followButton = `<div class='followButtonContainer'>
+                            <button class='${buttonClass}' data-user='${userData._id}'>${text}</button>
+                        </div>`;
+    }
+
+    return `<div class='user'>
+                <div class='userImageContainer'>
+                    <img src='${userData.profilePicture}'>
+                </div>
+                <div class='userDetailsContainer'>
+                    <div class='header'>
+                        <a href='/profile/${userData.username}'>${name}</a>
+                        <span class='username'>@${userData.username}</span>
+                    </div>
+                </div>
+                ${followButton}
+            </div>`;
+}
+
+function searchUsers(searchTerm) {
+    $.get("/api/users", { search: searchTerm }, (results) => {
+        console.log(results);
+        displaySelectableUsers(results, $(".resultsContainer"));
+
+    })
+}
+
+function displaySelectableUsers(results, container) {
+    results.forEach(result => {
+
+        if (result._id == userLoggedIn._id || selectedUsers.some(u => u._id == result._id)) {
+            return;
+        }
+        let html = createUserHtml(result, false);
+        let element = $(html);
+        element.click(() => userSelected(result));
+        container.append(element);
+    });
+
+    if (results.length == 0) {
+        container.append("<span class='noResults'>no results available</span>")
+    }
+}
+
+function userSelected(user) {
+    selectedUsers.push(user);
+    updateSelectedUsersHtml();
+    $("#userSearchTextbox").val("").focus();
+    $(".resultsContainer").html("");
+    $("#createChatButton").prop("disabled", false);
+}
+
+function updateSelectedUsersHtml() {
+    let elements = [];
+
+    selectedUsers.forEach(user => {
+        let name = user.firstname + " " + user.lastname;
+        let userElement = $(`<span class='selectedUser'>${name}</span>`);
+        elements.push(userElement);
+    })
+
+    $(".selectedUser").remove();
+    $("#selectedUsers").prepend(elements);
 }

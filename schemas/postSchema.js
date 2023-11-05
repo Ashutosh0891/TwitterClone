@@ -15,6 +15,7 @@ const postSchema = new mongoose.Schema({
     retweetUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     retweetData: { type: mongoose.Schema.Types.ObjectId, ref: 'Post' },
     replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Post' },
+    pinned: { type: Boolean }
 }, { timestamps: true });
 
 const Post = mongoose.model('Post', postSchema);

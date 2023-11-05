@@ -16,6 +16,11 @@ router.get('/', async (req, res, next) => {
                 delete searchObj.isReply;
             }
 
+            if (searchObj.search !== undefined) {
+                searchObj.content = { $regex: searchObj.search, $options: "i" };
+                delete searchObj.search;
+            }
+
             if (searchObj.followingOnly !== undefined) {
                 let followingOnly = searchObj.followingOnly;
                 if (followingOnly == "true") {
@@ -159,7 +164,7 @@ router.delete('/:id', async (req, res, next) => {
 
             } else {
                 let retweetedPost = await Post.findOne({ retweetData: postId });
-                if (user.retweets && user.retweets.includes(retweetedPost._id)) {
+                if (retweetedPost && user.retweets && user.retweets.includes(retweetedPost._id)) {
                     req.session.user = await User.findByIdAndUpdate(userId, { $pull: { retweets: retweetedPost._id } }, { new: true });
                 }
             }
@@ -182,6 +187,23 @@ router.delete('/:id', async (req, res, next) => {
     }
 
 });
+
+router.put('/:id', async (req, res, next) => {
+    try {
+
+        const { pinned } = req.body;
+        let postId = req.params.id;
+        if (req.body.pinned !== undefined) {
+            await Post.updateMany({ postedBy: req.session.user._id }, { pinned: false });
+        }
+
+        await Post.findByIdAndUpdate(postId, { pinned });
+        res.sendStatus(204);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(400);
+    }
+})
 
 async function getPosts(filter) {
     let results = await Post.find(filter)

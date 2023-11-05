@@ -7,12 +7,15 @@ const logoutRoutes = require('./routes/logout');
 const postRoutes = require('./routes/postRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const searchRoutes = require('./routes/searchRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 const path = require('path');
 const mongoose = require('mongoose');
 const { connectDB } = require('./db');
 const session = require('express-session');
-const postApiRoute = require('./routes/api/posts');
-const userApiRoute = require('./routes/api/users');
+const postsApiRoute = require('./routes/api/posts');
+const usersApiRoute = require('./routes/api/users');
+const chatsApiRoute = require('./routes/api/chats');
 
 
 
@@ -36,16 +39,21 @@ app.use(session({
 }))
 
 
-
+//Routes
 app.use('/login', loginRoutes);
 app.use('/register', registerRoutes);
 app.use('/logout', logoutRoutes);
 app.use('/posts', requireLogin, postRoutes);
 app.use('/profile', requireLogin, profileRoutes);
+app.use('/search', requireLogin, searchRoutes);
 app.use('/uploads', uploadRoutes);
+app.use('/messages', requireLogin, messageRoutes);
 
-app.use('/api/posts', postApiRoute);
-app.use('/api/users', userApiRoute);
+
+//Api routes
+app.use('/api/posts', postsApiRoute);
+app.use('/api/users', usersApiRoute);
+app.use('/api/chats', chatsApiRoute);
 
 app.get("/", requireLogin, (req, res) => {
 
