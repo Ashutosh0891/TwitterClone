@@ -16,6 +16,7 @@ const session = require('express-session');
 const postsApiRoute = require('./routes/api/posts');
 const usersApiRoute = require('./routes/api/users');
 const chatsApiRoute = require('./routes/api/chats');
+const messagesApiRoute = require('./routes/api/messages');
 
 
 
@@ -54,6 +55,7 @@ app.use('/messages', requireLogin, messageRoutes);
 app.use('/api/posts', postsApiRoute);
 app.use('/api/users', usersApiRoute);
 app.use('/api/chats', chatsApiRoute);
+app.use('/api/messages', messagesApiRoute);
 
 app.get("/", requireLogin, (req, res) => {
 
