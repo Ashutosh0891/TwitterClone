@@ -39,6 +39,11 @@ router.get('/', async (req, res, next) => {
             .populate("users")
             .populate("latestMessage")
             .sort({ "updatedAt": -1 });
+        console.log("before results", results)
+        if (req.query.unreadOnly !== undefined && req.query.unreadOnly == "true") {
+            results = results.filter(r => r.latestMessage && r.latestMessage.readBy && !r.latestMessage.readBy.includes(req.session.user._id));
+            console.log("after filter", results)
+        }
         await User.populate(results, { path: "latestMessage.sender" });
         res.status(200).send(results);
     } catch (error) {
@@ -80,8 +85,20 @@ router.get('/:chatId/messages', async (req, res, next) => {
         let results = await Message.find({ chat: chatId }).populate("sender");
         res.status(200).send(results);
     } catch (error) {
+
+    }
+});
+
+router.put("/:chatId/messages/markAsRead", async (req, res, next) => {
+    try {
+
+    } catch (error) {
         console.log(error);
         res.sendStatus(400);
     }
-});
+    await Message.updateMany({ chat: req.params.chatId }, { $addToSet: { readBy: req.session.user._id } });
+    res.sendStatus(204);
+
+})
+
 module.exports = router;

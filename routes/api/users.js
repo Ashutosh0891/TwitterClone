@@ -1,5 +1,6 @@
 const express = require('express');
 const User = require('../../schemas/userSchema');
+const Notification = require('../../schemas/notificationSchema');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
@@ -44,6 +45,10 @@ router.put('/:userId/follow', async (req, res, next) => {
         await User.findByIdAndUpdate(userId, { [option]: { followers: req.session.user._id } }, { new: true })
         res.status(200).send(req.session.user)
 
+        //send the notifications if not followed
+        if (!isFollowing) {
+            await Notification.insertNotification(userId, req.session.user._id, "follow", req.session.user._id);
+        }
 
 
     } catch (error) {

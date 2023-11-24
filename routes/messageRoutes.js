@@ -75,27 +75,45 @@ router.get('/:chatId', async (req, res, next) => {
 
 
 //to create the chat with profile user id to check if it exists or not if not then add
-function getChatByUserId(userLoggedInId, otherUserId) {
-    return Chat.findOneAndUpdate({
+// function getChatByUserId(userLoggedInId, otherUserId) {
+//     return Chat.findOneAndUpdate({
+//         isGroupChat: false,
+//         users: {
+//             $size: 2,
+//             $all: [
+//                 { $elemMatch: { $eq: userLoggedInId } },
+//                 { $elemMatch: { $eq: otherUserId } },
+//             ]
+//         }
+//     },
+//         {
+//             // to add if above conditions did not satisfy
+//             $setOnInsert: {
+//                 users: [userLoggedInId, otherUserId]
+//             }
+//         }, {
+//         new: true,
+//         upsert: true //to make changes if dont exists
+//     }).populate("users");
+// }
+async function getChatByUserId(userLoggedInId, otherUserId) {
+    // Find an existing chat with the given users
+    let chat = await Chat.findOne({
         isGroupChat: false,
-        users: {
-            $size: 2,
-            $all: [
-                { $elemMatch: { $eq: userLoggedInId } },
-                { $elemMatch: { $eq: otherUserId } },
-            ]
-        }
-    },
-        {
-            // to add if above conditions did not satisfy
-            $setOnInsert: {
-                users: [userLoggedInId, otherUserId]
-            }
-        }, {
-        new: true,
-        upsert: true //to make changes if dont exists
+        users: { $all: [userLoggedInId, otherUserId] }
     }).populate("users");
+
+    if (!chat) {
+        // If no existing chat is found, create a new one
+        chat = await Chat.create({
+            isGroupChat: false,
+            users: [userLoggedInId, otherUserId]
+        });
+    }
+
+    return chat;
 }
+
 
 
 module.exports = router;

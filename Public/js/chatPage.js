@@ -1,4 +1,16 @@
+let typing = false;
+let lastTypingTime;
+
 $(document).ready(() => {
+
+    socket.emit("join room", chatId);
+    socket.on("typing", () => {
+        $(".typingDots").show();
+    });
+    socket.on("stop typing", () => {
+        $(".typingDots").hide();
+    });
+
     $.get(`/api/chats/${chatId}`, (data) => {
         $("#chatName").text(getChatName(data));
     })
@@ -18,6 +30,7 @@ $(document).ready(() => {
         console.log(messagesHtml)
         addMessagesHtmlToPage(messagesHtml);
         scrollToBottom(false);
+        markAllMessagesAsRead();
 
         $(".loadingSpinnerContainer").remove();
         $(".chatContainer").css("visibility", "visible");
@@ -47,11 +60,38 @@ $(".sendMessageButton").click(() => {
     messagSubmitted();
 });
 $(".inputTextbox").keydown((event) => {
+    updateTyping();
+
     if (event.which == 13) {
         messagSubmitted();
         return false;
     }
 });
+
+function updateTyping() {
+
+    if (!connected) {
+        return;
+    }
+
+    if (!typing) {
+        typing = true;
+        socket.emit("typing", chatId);
+    }
+    lastTypingTime = new Date().getTime();
+    let timerLength = 3000;
+    // set 3 sec timer for typing dots if typing stops for 3 sec,then after 3 sec typing dots disappears
+    setTimeout(() => {
+        let timerNow = new Date().getTime();
+        let timeDiff = timerNow - lastTypingTime;
+
+        if (timeDiff >= timerLength) {
+            socket.emit("stop typing", chatId);
+            typing = false;
+        }
+    }, timerLength)
+
+}
 
 function addMessagesHtmlToPage(html) {
     $(".chatMessages").append(html);
@@ -63,6 +103,8 @@ function messagSubmitted() {
     if (content != "") {
         sendMessage(content);
         $(".inputTextbox").val("");
+        socket.emit("stop typing", chatId);
+        typing = false;
     }
 
 }
@@ -74,6 +116,10 @@ function sendMessage(content) {
             $(".inputTextbox").val(content);
         }
         addChatMessageHtml(data);
+
+        if (connected) {
+            socket.emit("new message", data);
+        }
     })
 }
 
@@ -140,4 +186,12 @@ function scrollToBottom(animated) {
     } else {
         container.scrollTop(scrollHeight)
     }
+}
+
+function markAllMessagesAsRead() {
+    $.ajax({
+        url: `/api/chats/${chatId}/messages/markAsRead`,
+        type: "PUT",
+        success: () => refreshMessagesBadge()
+    })
 }

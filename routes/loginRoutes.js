@@ -66,7 +66,7 @@ router.post('/', async (req, res, next) => {
                     { username: usernameOrEmail }
                 ]
             });
-            payload.errorMessage = "InvalidCredentials"
+            payload.errorMessage = "Invalid Credentials"
             if (!user) {
                 return res.status(401).render("login", payload);
             }
@@ -78,7 +78,7 @@ router.post('/', async (req, res, next) => {
             console.log(req.session)
             return res.redirect("/");
         } else {
-            payload.errorMessage = "any field can't be blank";
+            payload.errorMessage = "Any field can't be blank";
             res.status(200).render('login', payload);
         }
 
